@@ -3,13 +3,87 @@
 import './globals.css'
 import { useRef, useState, useEffect } from 'react'
 
+type VideoData = {
+  id: number
+  title: string
+  artist: string
+  src: string
+  thumbnail: string
+}
+
+const videos: VideoData[] = [
+  {
+    id: 1,
+    title: 'Sk8er Boi',
+    artist: 'Avril Lavigne',
+    src: 'video.mp4',
+    thumbnail: 'image.jpg',
+  },
+  {
+    id: 2,
+    title: 'Young & Dumb',
+    artist: 'Avril Lavigne',
+    src: 'video1.mp4',
+    thumbnail: 'Avril_Lavigne_-_Bite_Me.png',
+  },
+  {
+    id: 3,
+    title: 'Bite Me',
+    artist: 'Avril Lavigne',
+    src: 'video2.mp4',
+    thumbnail: 'image1.jpg',
+  },
+]
+
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  const [selectedVideo, setSelectedVideo] = useState<VideoData>(videos[0])
   const [isPlaying, setIsPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [volume, setVolume] = useState(1)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+
+  
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.pause()
+    video.currentTime = 0
+    setCurrentTime(0)
+    setDuration(0)
+    setIsPlaying(false)
+
+    const onLoadedMetadata = () => {
+      setDuration(video.duration)
+      video.play()
+      setIsPlaying(true)
+    }
+
+    video.addEventListener('loadedmetadata', onLoadedMetadata)
+
+    return () => {
+      video.removeEventListener('loadedmetadata', onLoadedMetadata)
+    }
+  }, [selectedVideo])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const updateTime = () => setCurrentTime(video.currentTime)
+    const onEnded = () => setIsPlaying(false)
+
+    video.addEventListener('timeupdate', updateTime)
+    video.addEventListener('ended', onEnded)
+
+    return () => {
+      video.removeEventListener('timeupdate', updateTime)
+      video.removeEventListener('ended', onEnded)
+    }
+  }, [selectedVideo])
 
   const togglePlay = () => {
     const video = videoRef.current
@@ -57,25 +131,6 @@ export default function Home() {
     }
   }
 
-  
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const updateTime = () => setCurrentTime(video.currentTime)
-    const setVideoDuration = () => setDuration(video.duration)
-
-    video.addEventListener('timeupdate', updateTime)
-    video.addEventListener('loadedmetadata', setVideoDuration)
-    video.addEventListener('ended', () => setIsPlaying(false))
-
-    return () => {
-      video.removeEventListener('timeupdate', updateTime)
-      video.removeEventListener('loadedmetadata', setVideoDuration)
-    }
-  }, [])
-
-  
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60)
     const seconds = Math.floor(time % 60)
@@ -84,18 +139,48 @@ export default function Home() {
 
   return (
     <div className="music-player">
+      {/* Lista de vídeos */}
+      <div className="video-list" style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+        {videos.map((video) => (
+          <div
+            key={video.id}
+            style={{
+              cursor: 'pointer',
+              border: video.id === selectedVideo.id ? '2px solid blue' : '1px solid gray',
+              padding: '5px',
+              borderRadius: '5px',
+              width: '120px',
+              textAlign: 'center',
+            }}
+            onClick={() => setSelectedVideo(video)}
+          >
+            <img
+              src={video.thumbnail}
+              alt={`Thumbnail ${video.title}`}
+              style={{ width: '100%', borderRadius: '5px' }}
+            />
+            <div>{video.title}</div>
+            <small>{video.artist}</small>
+          </div>
+        ))}
+      </div>
+
+      {/* Player do vídeo selecionado */}
       <video
         ref={videoRef}
-        src="/video.mp4"
+        src={selectedVideo.src}
         className="cover"
         width="100%"
       />
 
-      <div className="title">sk8er boi</div>
-      <div className="artist">Avril Lavigne</div>
+      <div className="title">{selectedVideo.title}</div>
+      <div className="artist">{selectedVideo.artist}</div>
 
       {/* Barra de tempo */}
-      <div className="progress-bar" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div
+        className="progress-bar"
+        style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}
+      >
         <span>{formatTime(currentTime)}</span>
         <input
           type="range"
@@ -109,7 +194,7 @@ export default function Home() {
         <span>{formatTime(duration)}</span>
       </div>
 
-      <div className="controls">
+      <div className="controls" style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button onClick={() => skip(-10)}>&laquo;</button>
 
         <button onClick={togglePlay} className="play-button">
