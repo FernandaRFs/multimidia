@@ -88,3 +88,7 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+.progress-bar {
+  -webkit-appearance: none;
+}
