@@ -40,17 +40,17 @@ export default function Home() {
 
   const [selectedVideo, setSelectedVideo] = useState<VideoData>(videos[0])
   const [isPlaying, setIsPlaying] = useState(false)
-  const [muted, setMuted] = useState(false)
+  const [muted, setMuted] = useState(false) 
   const [volume, setVolume] = useState(1)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
-  
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
     video.pause()
+    video.load() 
     video.currentTime = 0
     setCurrentTime(0)
     setDuration(0)
@@ -58,8 +58,9 @@ export default function Home() {
 
     const onLoadedMetadata = () => {
       setDuration(video.duration)
-      video.play()
-      setIsPlaying(true)
+      video.play().then(() => setIsPlaying(true)).catch(() => {
+        setIsPlaying(false)
+      })
     }
 
     video.addEventListener('loadedmetadata', onLoadedMetadata)
@@ -74,7 +75,13 @@ export default function Home() {
     if (!video) return
 
     const updateTime = () => setCurrentTime(video.currentTime)
-    const onEnded = () => setIsPlaying(false)
+
+    const onEnded = () => {
+      setIsPlaying(false)
+      const currentIndex = videos.findIndex((v) => v.id === selectedVideo.id)
+      const nextIndex = (currentIndex + 1) % videos.length
+      setSelectedVideo(videos[nextIndex])
+    }
 
     video.addEventListener('timeupdate', updateTime)
     video.addEventListener('ended', onEnded)
@@ -165,18 +172,17 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Player do vídeo selecionado */}
       <video
         ref={videoRef}
         src={selectedVideo.src}
         className="cover"
         width="100%"
+        muted={muted}
       />
 
       <div className="title">{selectedVideo.title}</div>
       <div className="artist">{selectedVideo.artist}</div>
 
-      {/* Barra de tempo */}
       <div
         className="progress-bar"
         style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}
@@ -194,6 +200,7 @@ export default function Home() {
         <span>{formatTime(duration)}</span>
       </div>
 
+      {/* Controles */}
       <div className="controls" style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button onClick={() => skip(-10)}>&laquo;</button>
 
